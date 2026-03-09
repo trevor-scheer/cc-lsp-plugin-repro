@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "graphql-lsp@graphql-analyzer": false,
+    "tsgo@graphql-analyzer": true
+  }
+}
