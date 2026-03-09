@@ -1,6 +1,19 @@
 # cc-lsp-plugin-repro
 
-Minimal reproduction repo for testing Claude Code with LSP plugins.
+## TL;DR
+
+When multiple Claude Code LSP plugins declare interest in the same file
+extension (e.g. both `tsgo` and `graphql-lsp` handle `.ts` files), only one
+plugin is used — whichever is listed first in `enabledPlugins` wins. There
+doesn't appear to be a way to have both plugins active for the same extension.
+
+In practice, this means enabling the `graphql-lsp` plugin (listed first) causes
+TypeScript files to be routed to graphql-lsp instead of tsgo, and TypeScript
+intelligence is lost entirely. Reordering the plugins so tsgo is listed first
+restores TypeScript intelligence, but then graphql-lsp never starts.
+
+The expected behavior is that both plugins should be able to serve their
+respective intelligence for `.ts` files simultaneously.
 
 ## Prerequisites
 
@@ -47,22 +60,21 @@ Available platform binaries:
 
 ## Reproducing the issue
 
-The easiest way to reproduce is to ask Claude to guide you through it. After
-completing the setup steps above, run `claude` and ask:
+The easiest way to reproduce is to let Claude do it. After completing the setup
+steps above, run `claude` and ask:
 
 ```
 guide me through the LSP plugin reproduction
 ```
 
-Claude will walk you through both parts of the reproduction, validating each
-step along the way. See `CLAUDE.md` for the full reproduction plan it follows.
+Claude knows the full reproduction plan (defined in `CLAUDE.md`) and will walk
+you through all three parts, validating each step along the way.
 
-The manual steps below describe the same process if you prefer to do it
-yourself.
+If you prefer to run the steps manually, follow the instructions below.
 
 ---
 
-## Manual steps
+## Manual reproduction
 
 ### Part 1: TypeScript LSP (tsgo) working on its own
 
