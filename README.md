@@ -45,7 +45,26 @@ Available platform binaries:
 | Linux (x86_64) | `graphql-lsp-x86_64-unknown-linux-gnu.tar.xz` |
 | Windows (x86_64) | `graphql-lsp-x86_64-pc-windows-msvc.zip` |
 
-## Part 1: TypeScript LSP (tsgo) working on its own
+## Reproducing the issue
+
+The easiest way to reproduce is to ask Claude to guide you through it. After
+completing the setup steps above, run `claude` and ask:
+
+```
+guide me through the LSP plugin reproduction
+```
+
+Claude will walk you through both parts of the reproduction, validating each
+step along the way. See `CLAUDE.md` for the full reproduction plan it follows.
+
+The manual steps below describe the same process if you prefer to do it
+yourself.
+
+---
+
+## Manual steps
+
+### Part 1: TypeScript LSP (tsgo) working on its own
 
 The repo ships with `.claude/settings.json` pre-configured with only the tsgo
 plugin enabled (graphql-lsp is disabled):
