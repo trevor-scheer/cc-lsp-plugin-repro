@@ -76,10 +76,14 @@ If you prefer to run the steps manually, follow the instructions below.
 
 ## Manual reproduction
 
-### Part 1: TypeScript LSP (tsgo) working on its own
+LSP servers do **not** start automatically when Claude Code launches — they only
+start when Claude invokes the LSP tool. Each part verifies which servers start
+by checking process counts before and after invoking the tool.
 
-The repo ships with `.claude/settings.json` pre-configured with only the tsgo
-plugin enabled (graphql-lsp is disabled):
+### Part 1: tsgo works on its own
+
+The repo ships with `.claude/settings.json` pre-configured with only tsgo
+enabled:
 
 ```json
 {
@@ -90,106 +94,66 @@ plugin enabled (graphql-lsp is disabled):
 }
 ```
 
-### 3. Run Claude Code
+1. Run `claude` in the repo.
+2. In a separate terminal, verify no Claude-owned tsgo is running yet:
+   ```sh
+   pgrep -fa tsgo
+   ```
+3. Ask Claude to invoke the LSP tool:
+   ```
+   use the LSP hover tool on src/index.ts line 1, character 11
+   ```
+4. Check processes again — tsgo should now be running. The hover should return
+   TypeScript type info for the `gql` import (e.g. `function gql(...): DocumentNode`).
 
-```sh
-claude
-```
+### Part 2: enabling graphql-lsp breaks tsgo
 
-### 4. Verify tsgo is NOT running yet
+1. Update `.claude/settings.json` — enable graphql-lsp, listed **first**:
+   ```json
+   {
+     "enabledPlugins": {
+       "graphql-lsp@graphql-analyzer": true,
+       "tsgo@graphql-analyzer": true
+     }
+   }
+   ```
+2. Restart Claude Code (`/exit`, then `claude`).
+3. In a separate terminal, verify neither LSP is running yet:
+   ```sh
+   pgrep -fa tsgo
+   pgrep -fa graphql-lsp
+   ```
+4. Ask Claude to invoke the LSP tool on the same position:
+   ```
+   use the LSP hover tool on src/index.ts line 1, character 11
+   ```
+5. Check processes again — graphql-lsp should be running, but tsgo should
+   **not** be. The hover result will differ from Part 1 (no TypeScript type
+   info). TypeScript intelligence is lost.
 
-In a separate terminal, confirm no tsgo process has been spawned:
+### Part 3: plugin ordering determines the outcome
 
-```sh
-pgrep -fa tsgo
-```
+1. Update `.claude/settings.json` — keep both enabled, but list **tsgo first**:
+   ```json
+   {
+     "enabledPlugins": {
+       "tsgo@graphql-analyzer": true,
+       "graphql-lsp@graphql-analyzer": true
+     }
+   }
+   ```
+2. Restart Claude Code.
+3. Verify neither LSP is running yet.
+4. Ask Claude to invoke the LSP tool on the same position:
+   ```
+   use the LSP hover tool on src/index.ts line 1, character 11
+   ```
+5. Check processes — this time tsgo should be running and graphql-lsp should
+   **not** be. The hover returns TypeScript type info again, same as Part 1.
 
-This should return nothing. LSP servers do **not** start automatically when
-Claude Code launches — they only start when Claude invokes the LSP tool.
-
-### 5. Ask Claude to invoke the LSP tool
-
-Back in your Claude Code session, ask Claude to use the LSP tool:
-
-```
-use the LSP tool on src/index.ts
-```
-
-### 6. Verify tsgo IS running
-
-In your separate terminal, check again:
-
-```sh
-pgrep -fa tsgo
-```
-
-This should now return a matching process. The tsgo LSP server is running and
-serving TypeScript intelligence for `src/index.ts`.
-
-### 7. Verify the LSP tool works on TypeScript files
-
-Ask Claude to use the LSP tool on `src/index.ts`:
-
-```
-use the LSP hover tool on src/index.ts line 1, character 11 (imported `gql` tag)
-```
-
-Claude should successfully return hover information from tsgo (e.g. type info
-for the `gql` import). This confirms the TypeScript LSP is working correctly.
-
-## Part 2: Enabling the GraphQL plugin breaks tsgo
-
-Now we'll enable the graphql-lsp plugin and observe that tsgo stops being used
-for TypeScript files.
-
-### 7. Enable the GraphQL plugin
-
-Edit `.claude/settings.json` to enable the graphql-lsp plugin:
-
-```json
-{
-  "enabledPlugins": {
-    "graphql-lsp@graphql-analyzer": true,
-    "tsgo@graphql-analyzer": true
-  }
-}
-```
-
-### 8. Restart Claude Code
-
-Exit your current Claude Code session and start a new one:
-
-```sh
-claude
-```
-
-### 9. Verify neither LSP is running yet
-
-In your separate terminal:
-
-```sh
-pgrep -fa tsgo
-pgrep -fa graphql-lsp
-```
-
-Both should return nothing.
-
-### 10. Ask Claude to invoke the LSP tool
-
-```
-use the LSP tool on src/index.ts
-```
-
-### 11. Check which LSP servers are running
-
-```sh
-pgrep -fa tsgo
-pgrep -fa graphql-lsp
-```
-
-With both plugins enabled, the graphql-lsp process handles `.ts` files and
-tsgo is **not** invoked for TypeScript files — even though both plugins are
-enabled.
+This suggests the order of plugins in `enabledPlugins` determines which server
+handles a given file extension — the first listed plugin appears to win, and
+only one plugin is used per extension.
 
 ## Repo structure
 
